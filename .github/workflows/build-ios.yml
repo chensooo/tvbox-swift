@@ -1,0 +1,24 @@
+name: Build iOS IPA
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode Project
+        run: xcodegen generate
+      - name: Archive & Export IPA
+        run: |
+          xcodebuild archive -scheme tvbox -destination generic/platform=iOS -archivePath tvbox.xcarchive
+          mkdir export
+          xcodebuild -exportArchive -archivePath tvbox.xcarchive -exportOptionsPlist <(echo '<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>') -exportPath export
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: TVBox-iPA
+          path: export/*.ipa
