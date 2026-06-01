@@ -5,26 +5,20 @@ jobs:
   build:
     runs-on: macos-14
     steps:
-      - name: 拉取源码
-        uses: actions/checkout@v4
-
-      - name: 安装XcodeGen
-        run: brew install xcodegen
-
-      - name: 生成Xcode工程
-        run: xcodegen generate
-
-      - name: 归档编译打包
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
         run: |
-          xcodebuild archive -project tvbox.xcodeproj -scheme tvbox -destination generic/platform=iOS -archivePath tvbox.xcarchive
-          mkdir ipa_out
-          xcodebuild -exportArchive \
-            -archivePath tvbox.xcarchive \
-            -exportOptionsPlist <(echo '<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>method</key><string>development</string></dict></plist>') \
-            -exportPath ipa_out
-
-      - name: 上传IPA安装包
+          brew update
+          brew install xcodegen
+      - name: Generate project file
+        run: xcodegen generate
+      - name: Build & Archive
+        run: |
+          xcodebuild archive -project tvbox.xcodeproj -scheme tvbox -destination "generic/platform=iOS" -archivePath ./build/tvbox.xcarchive
+          mkdir -p ./export
+          xcodebuild -exportArchive -archivePath ./build/tvbox.xcarchive -exportOptionsPlist <(echo '<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>method</key><string>development</string><key>signingStyle</key><string>manual</string><key>signingCertificate</key><string>iOS Developer</string></dict></plist>') -exportPath ./export
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: TVBox-Swift-iOS
-          path: ipa_out/*.ipa
+          name: TVBox-iOS
+          path: export/*.ipa
